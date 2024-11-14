@@ -26,10 +26,12 @@ services:
       DB_PASSWORD: ${DB_PASSWORD}
       SECRET: ${SECRET}
       PUBLIC_URL: ${PUBLIC_URL}
+      # AU LIEU DE METTRE TOUTES MES VARIABLE D'ENVIRONNEMENT JE REMPLACE PAR:
+    # env_file:
+    #   - .env
     depends_on:
-      - db 
-        #condition: service_healthy
-        #           service_started
+      db:
+        condition: service_healthy
     networks:
       - db-network
         
@@ -37,14 +39,20 @@ services:
   db:
     image: postgres:17
     environment:
-      POSTGRES_DB: data-test
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: pwd
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
     #- ./data/dump.sql:/docker-entrypoint-initdb.d/init.sql
     - db-data:/var/lib/postgresql/data
     networks:
       - db-network
+    healthcheck:
+      test: ["CMD-SHELL", "PGPASSWORD=${POSTGRES_PASSWORD} psql -U ${POSTGRES_USER} -d ${POSTGRES_DB} -c 'SELECT 1' "] # Commande pour tester la disponibilité de PostgreSQL
+      interval: 5s   # Vérifier toutes les 30 secondes
+      retries: 5      # Essayer 5 fois avant de déclarer l'échec
+      start_period: 10s  # Attendre 10 secondes après le démarrage avant d'effectuer le premier test
+      timeout: 5s       # Timeout de chaque test à 5 secondes
 
   adminer:
     image: adminer
@@ -55,9 +63,11 @@ services:
       ADMINER_DEFAULT_SERVER: db
       ADMINER_DESIGN: pepa-linha-dark
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     networks:
       - db-network
+
 
 
 volumes:
